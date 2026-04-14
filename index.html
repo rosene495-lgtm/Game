@@ -55,19 +55,32 @@
       margin-right: auto;
       text-align: left;
     }
+
+    input {
+      padding: 8px;
+      font-size: 16px;
+      width: 200px;
+      margin-bottom: 10px;
+    }
   </style>
 </head>
 <body>
 
 <h1>Click The Box 🎯</h1>
 
+<!-- Player Name Input -->
+<div id="player-setup">
+  <input type="text" id="playerName" placeholder="Enter your name" maxlength="12">
+  <br>
+  <button onclick="startGame()">Start Game</button>
+</div>
+
 <div id="stats">
+  Player: <span id="currentPlayer">---</span> |
   Score: <span id="score">0</span> |
   Level: <span id="level">1</span> |
   Time: <span id="time">30</span>s
 </div>
-
-<button onclick="startGame()">Start Game</button>
 
 <div id="game-area">
   <div id="box"></div>
@@ -90,12 +103,14 @@
   const timeEl = document.getElementById("time");
   const levelEl = document.getElementById("level");
   const scoresList = document.getElementById("scores");
+  const playerNameInput = document.getElementById("playerName");
+  const currentPlayerEl = document.getElementById("currentPlayer");
 
   const clickSound = document.getElementById("clickSound");
   const levelSound = document.getElementById("levelSound");
   const endSound = document.getElementById("endSound");
 
-  let score, time, level;
+  let score, time, level, playerName;
   let moveInterval, timerInterval;
   let boxSize, speed;
 
@@ -141,6 +156,16 @@
   box.addEventListener("touchstart", handleBoxClick);
 
   function startGame() {
+    playerName = playerNameInput.value.trim();
+
+    if (!playerName) {
+      alert("Please enter your name!");
+      return;
+    }
+
+    document.getElementById("player-setup").style.display = "none";
+    currentPlayerEl.textContent = playerName;
+
     score = 0;
     time = 30;
     level = 1;
@@ -167,25 +192,41 @@
     clearInterval(moveInterval);
     clearInterval(timerInterval);
     endSound.play();
-    saveScore(score);
+
+    saveScore({
+      name: playerName,
+      score: score,
+      level: level
+    });
+
     loadLeaderboard();
-    alert("Game Over! Final Score: " + score);
+
+    document.getElementById("player-setup").style.display = "block";
+    alert(`Game Over ${playerName}! Score: ${score}, Level: ${level}`);
   }
 
-  function saveScore(score) {
-    let scores = JSON.parse(localStorage.getItem("leaderboard")) || [];
-    scores.push(score);
-    scores.sort((a, b) => b - a);
-    scores = scores.slice(0, 5);
-    localStorage.setItem("leaderboard", JSON.stringify(scores));
+  function saveScore(entry) {
+    let leaderboard = JSON.parse(localStorage.getItem("leaderboard")) || [];
+    leaderboard.push(entry);
+
+    leaderboard.sort((a, b) => {
+      if (b.score === a.score) {
+        return b.level - a.level;
+      }
+      return b.score - a.score;
+    });
+
+    leaderboard = leaderboard.slice(0, 5);
+    localStorage.setItem("leaderboard", JSON.stringify(leaderboard));
   }
 
   function loadLeaderboard() {
-    let scores = JSON.parse(localStorage.getItem("leaderboard")) || [];
+    let leaderboard = JSON.parse(localStorage.getItem("leaderboard")) || [];
     scoresList.innerHTML = "";
-    scores.forEach(s => {
+
+    leaderboard.forEach(entry => {
       const li = document.createElement("li");
-      li.textContent = s;
+      li.textContent = `${entry.name} — Score: ${entry.score} (Level ${entry.level})`;
       scoresList.appendChild(li);
     });
   }
