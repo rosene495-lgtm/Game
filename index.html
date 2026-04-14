@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Click The Box</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #020617;
+      color: white;
+      text-align: center;
+      margin: 0;
+      padding: 10px;
+    }
+
+    h1 {
+      margin: 10px 0;
+    }
+
+    #stats {
+      font-size: 18px;
+      margin-bottom: 10px;
+    }
+
+    #game-area {
+      width: 90vw;
+      max-width: 400px;
+      height: 400px;
+      border: 2px solid white;
+      margin: auto;
+      position: relative;
+      background: #0f172a;
+      touch-action: manipulation;
+    }
+
+    #box {
+      background: #22c55e;
+      position: absolute;
+      border-radius: 8px;
+    }
+
+    button {
+      padding: 10px 20px;
+      font-size: 16px;
+      margin: 10px;
+      cursor: pointer;
+    }
+
+    #leaderboard {
+      margin-top: 20px;
+      max-width: 400px;
+      margin-left: auto;
+      margin-right: auto;
+      text-align: left;
+    }
+  </style>
+</head>
+<body>
+
+<h1>Click The Box 🎯</h1>
+
+<div id="stats">
+  Score: <span id="score">0</span> |
+  Level: <span id="level">1</span> |
+  Time: <span id="time">30</span>s
+</div>
+
+<button onclick="startGame()">Start Game</button>
+
+<div id="game-area">
+  <div id="box"></div>
+</div>
+
+<div id="leaderboard">
+  <h3>🏆 Leaderboard</h3>
+  <ol id="scores"></ol>
+</div>
+
+<!-- Sound Effects -->
+<audio id="clickSound" src="https://www.soundjay.com/buttons/sounds/button-16.mp3"></audio>
+<audio id="levelSound" src="https://www.soundjay.com/buttons/sounds/button-09.mp3"></audio>
+<audio id="endSound" src="https://www.soundjay.com/buttons/sounds/button-10.mp3"></audio>
+
+<script>
+  const box = document.getElementById("box");
+  const gameArea = document.getElementById("game-area");
+  const scoreEl = document.getElementById("score");
+  const timeEl = document.getElementById("time");
+  const levelEl = document.getElementById("level");
+  const scoresList = document.getElementById("scores");
+
+  const clickSound = document.getElementById("clickSound");
+  const levelSound = document.getElementById("levelSound");
+  const endSound = document.getElementById("endSound");
+
+  let score, time, level;
+  let moveInterval, timerInterval;
+  let boxSize, speed;
+
+  function randomPosition() {
+    const maxX = gameArea.clientWidth - boxSize;
+    const maxY = gameArea.clientHeight - boxSize;
+    box.style.left = Math.random() * maxX + "px";
+    box.style.top = Math.random() * maxY + "px";
+  }
+
+  function updateDifficulty() {
+    boxSize = Math.max(20, 60 - level * 5);
+    speed = Math.max(300, 1000 - level * 100);
+
+    box.style.width = boxSize + "px";
+    box.style.height = boxSize + "px";
+
+    clearInterval(moveInterval);
+    moveInterval = setInterval(randomPosition, speed);
+  }
+
+  function levelUp() {
+    level++;
+    levelEl.textContent = level;
+    levelSound.play();
+    updateDifficulty();
+  }
+
+  function handleBoxClick() {
+    if (time <= 0) return;
+
+    score++;
+    scoreEl.textContent = score;
+    clickSound.play();
+    randomPosition();
+
+    if (score % 10 === 0) {
+      levelUp();
+    }
+  }
+
+  box.addEventListener("click", handleBoxClick);
+  box.addEventListener("touchstart", handleBoxClick);
+
+  function startGame() {
+    score = 0;
+    time = 30;
+    level = 1;
+
+    scoreEl.textContent = score;
+    timeEl.textContent = time;
+    levelEl.textContent = level;
+
+    updateDifficulty();
+    randomPosition();
+
+    clearInterval(timerInterval);
+    timerInterval = setInterval(() => {
+      time--;
+      timeEl.textContent = time;
+
+      if (time <= 0) {
+        endGame();
+      }
+    }, 1000);
+  }
+
+  function endGame() {
+    clearInterval(moveInterval);
+    clearInterval(timerInterval);
+    endSound.play();
+    saveScore(score);
+    loadLeaderboard();
+    alert("Game Over! Final Score: " + score);
+  }
+
+  function saveScore(score) {
+    let scores = JSON.parse(localStorage.getItem("leaderboard")) || [];
+    scores.push(score);
+    scores.sort((a, b) => b - a);
+    scores = scores.slice(0, 5);
+    localStorage.setItem("leaderboard", JSON.stringify(scores));
+  }
+
+  function loadLeaderboard() {
+    let scores = JSON.parse(localStorage.getItem("leaderboard")) || [];
+    scoresList.innerHTML = "";
+    scores.forEach(s => {
+      const li = document.createElement("li");
+      li.textContent = s;
+      scoresList.appendChild(li);
+    });
+  }
+
+  loadLeaderboard();
+</script>
+
+</body>
+</html>
